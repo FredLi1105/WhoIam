@@ -1,0 +1,101 @@
+.project-expansion {
+  --card-width: 260px;
+  --card-height: 180px;
+
+  position: relative;
+  width: var(--card-width);
+  height: var(--card-height);
+
+  overflow: visible;
+  z-index: 10;
+}
+
+.project-expansion__stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+
+  overflow: visible;
+}
+
+.project-component-card {
+  position: absolute;
+  top: 0;
+  right: 0;
+
+  width: var(--card-width);
+  height: var(--card-height);
+
+  box-sizing: border-box;
+  padding: 20px;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+
+  background: #141419;
+
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
+
+  overflow: hidden;
+}
+
+.project-component-card--anchor {
+  right: 0;
+  z-index: 100;
+}
+
+.project-component-card--animated {
+  right: var(--card-offset);
+  z-index: 50;
+
+  animation: project-slide-left var(--animation-duration)
+    cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.project-component-card__name {
+  margin-bottom: 10px;
+
+  font-size: 18px;
+  font-weight: 600;
+
+  color: white;
+}
+
+.project-component-card__description {
+  margin-bottom: 16px;
+
+  font-size: 13px;
+  line-height: 1.5;
+
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.project-component-card__technologies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.project-component-card__technology {
+  padding: 4px 8px;
+
+  border-radius: 6px;
+
+  background: rgba(255, 255, 255, 0.08);
+
+  font-size: 11px;
+
+  color: rgba(255, 255, 255, 0.75);
+}
+
+@keyframes project-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(var(--card-offset));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

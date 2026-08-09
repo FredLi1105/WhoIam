@@ -1,0 +1,126 @@
+.constellation-reveal {
+  position: relative;
+
+  width: 420px;
+  height: 420px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: visible;
+}
+
+.constellation-reveal__stage {
+  position: relative;
+
+  width: 420px;
+  height: 360px;
+
+  overflow: visible;
+}
+
+.constellation-reveal__svg {
+  position: absolute;
+
+  inset: 0;
+
+  width: 420px;
+  height: 360px;
+
+  overflow: visible;
+
+  z-index: 2;
+}
+
+.constellation-reveal__line {
+  position: absolute;
+
+  height: 1px;
+
+  transform-origin: left center;
+
+  background: rgba(255, 255, 255, 0.45);
+
+  opacity: 0;
+
+  transform: scaleX(0);
+
+  transform-origin: left center;
+
+  transition:
+    opacity 0.35s ease,
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.35);
+
+  z-index: 1;
+}
+
+.constellation-reveal__line--visible {
+  opacity: 1;
+
+  transform: scaleX(1);
+}
+
+.constellation-reveal__star {
+  transition:
+    opacity 0.4s ease,
+    filter 0.4s ease;
+}
+
+.constellation-reveal__star-core {
+  fill: #ff4d6d;
+}
+
+.constellation-reveal__star-glow {
+  fill: rgba(255, 255, 255, 0.25);
+
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.6));
+
+  transition:
+    r 0.6s ease,
+    opacity 0.6s ease;
+}
+
+.constellation-reveal--active .constellation-reveal__star-glow {
+  opacity: 0.9;
+}
+
+.constellation-reveal__star--formed .constellation-reveal__star-glow {
+  opacity: 1;
+}
+
+.constellation-reveal__star--formed .constellation-reveal__star-core {
+  fill: white;
+}
+
+.constellation-reveal__text {
+  position: absolute;
+
+  left: 50%;
+  bottom: 0;
+
+  transform: translateX(-50%) translateY(8px);
+
+  white-space: nowrap;
+
+  font-size: 14px;
+  font-weight: 400;
+
+  letter-spacing: 0.08em;
+
+  color: rgba(255, 255, 255, 0);
+
+  transition:
+    color 1s ease,
+    transform 1s ease;
+
+  z-index: 5;
+}
+
+.constellation-reveal__text--visible {
+  color: rgba(255, 255, 255, 0.8);
+
+  transform: translateX(-50%) translateY(0);
+}
