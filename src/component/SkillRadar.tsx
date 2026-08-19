@@ -32,9 +32,7 @@ function getPoint(center: number, radius: number, angle: number) {
 }
 
 function pointsToString(points: Point[]) {
-  return points
-    .map((point) => `${point.x},${point.y}`)
-    .join(" ");
+  return points.map((point) => `${point.x},${point.y}`).join(" ");
 }
 
 export default function SkillRadar({

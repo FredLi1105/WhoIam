@@ -41,7 +41,6 @@ const DEFAULT_STARS: Point[] = [
   { x: 355, y: 320 },
 ];
 
-
 const ConstellationReveal: React.FC<ConstellationRevealProps> = ({
   movementStrategy = gravityStrategy,
   duration = 3000,
