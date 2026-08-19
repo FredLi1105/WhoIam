@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import "./ZombieGame.css";
+import "./GalaxyDefense.css";
 
 type GameStatus = "ready" | "playing" | "gameover";
 
@@ -41,7 +41,7 @@ const BULLET_SPEED = 650;
 const FIRE_INTERVAL = 300;
 const ENEMY_SPAWN_INTERVAL = 900;
 
-const BEST_SCORE_KEY = "zombie-game-best-score";
+const BEST_SCORE_KEY = "galaxy-defense-best-score";
 
 /*
  * =========================
@@ -283,7 +283,7 @@ function createBuff(): Buff {
  * =========================
  */
 
-export default function ZombieGame() {
+export default function GalaxyDefense() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const playerRef = useRef<Player>({
@@ -755,7 +755,7 @@ export default function ZombieGame() {
 
         <div className="game-content">
           <div className="game-start-card">
-            <div className="game-title">ZOMBIE SHOOTER</div>
+            <div className="game-title">GALAXY DEFENSE</div>
 
             <div className="game-description">
               Move your mouse or finger to move.

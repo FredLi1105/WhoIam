@@ -2,7 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { MainLayout } from "../layout/Main";
 
-import { ZombieGame } from "../features/zombie-game";
+import { GalaxyDefense } from "../features/galaxy-defense";
 
 function HomePage() {
   return (
@@ -23,7 +23,7 @@ function AppRouter() {
     <BrowserRouter basename={basename}>
       <Routes>
         <Route path="/home" element={<HomePage />} />
-        <Route path="/game" element={<ZombieGame />} />
+        <Route path="/game" element={<GalaxyDefense />} />
         <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
