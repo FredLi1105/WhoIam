@@ -167,7 +167,7 @@
 
   &::before,
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     top: -4.5px;
     border: 5px solid transparent;
@@ -180,5 +180,214 @@
   &::after {
     right: 0;
     border-right-color: var(--border);
+  }
+}
+
+.arcade-game-button {
+  box-sizing: border-box;
+
+  max-width: 100%;
+
+  overflow: hidden;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 190px;
+  height: 39px;
+
+  padding: 0 24px;
+
+  border: 1px solid rgba(139, 92, 246, 0.8);
+  border-radius: 14px;
+
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.95),
+    rgba(30, 27, 75, 0.9)
+  );
+
+  color: #f8fafc;
+
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+
+  cursor: pointer;
+
+  overflow: hidden;
+
+  box-shadow:
+    0 0 8px rgba(124, 58, 237, 0.45),
+    0 0 25px rgba(59, 130, 246, 0.2),
+    inset 0 0 20px rgba(99, 102, 241, 0.08);
+
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+/*
+ * Animated glowing border
+ */
+.arcade-game-button::before {
+  content: "";
+
+  position: absolute;
+  inset: -2px;
+
+  border-radius: inherit;
+
+  background: linear-gradient(
+    120deg,
+    transparent 20%,
+    rgba(96, 165, 250, 0.9),
+    rgba(168, 85, 247, 0.95),
+    transparent 80%
+  );
+
+  opacity: 0.5;
+
+  animation: arcade-border-flow 3s linear infinite;
+
+  pointer-events: none;
+}
+
+/*
+ * Dark inner layer
+ */
+.arcade-game-button::after {
+  content: "";
+
+  position: absolute;
+  inset: 1px;
+
+  border-radius: 13px;
+
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.98),
+    rgba(23, 24, 58, 0.96)
+  );
+
+  z-index: 0;
+
+  pointer-events: none;
+}
+
+/*
+ * Content
+ */
+.arcade-game-button-content {
+  position: relative;
+
+  z-index: 2;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+}
+
+/*
+ * Star icon
+ */
+.arcade-game-icon {
+  color: #a78bfa;
+
+  font-size: 18px;
+
+  text-shadow:
+    0 0 6px rgba(167, 139, 250, 0.9),
+    0 0 14px rgba(124, 58, 237, 0.7);
+
+  animation: arcade-star-pulse 2s ease-in-out infinite;
+}
+
+/*
+ * Arrow
+ */
+.arcade-game-arrow {
+  color: #60a5fa;
+
+  font-size: 18px;
+
+  transition: transform 0.25s ease;
+}
+
+/*
+ * Hover
+ */
+.arcade-game-button:hover {
+  transform: translateY(-2px) scale(1.02);
+
+  border-color: rgba(167, 139, 250, 1);
+
+  box-shadow:
+    0 0 12px rgba(139, 92, 246, 0.8),
+    0 0 35px rgba(59, 130, 246, 0.45),
+    0 0 70px rgba(124, 58, 237, 0.2),
+    inset 0 0 25px rgba(99, 102, 241, 0.15);
+}
+
+/*
+ * Arrow moves on hover
+ */
+.arcade-game-button:hover .arcade-game-arrow {
+  transform: translateX(5px);
+}
+
+/*
+ * Star gets brighter
+ */
+.arcade-game-button:hover .arcade-game-icon {
+  color: #c4b5fd;
+
+  text-shadow:
+    0 0 8px rgba(196, 181, 253, 1),
+    0 0 20px rgba(139, 92, 246, 0.9);
+}
+
+/*
+ * Click
+ */
+.arcade-game-button:active {
+  transform: translateY(0) scale(0.97);
+
+  box-shadow:
+    0 0 8px rgba(139, 92, 246, 0.6),
+    inset 0 0 20px rgba(99, 102, 241, 0.25);
+}
+
+/*
+ * Moving border light
+ */
+@keyframes arcade-border-flow {
+  0% {
+    transform: rotate(0deg) scale(1.5);
+  }
+
+  100% {
+    transform: rotate(360deg) scale(1.5);
+  }
+}
+
+/*
+ * Star breathing
+ */
+@keyframes arcade-star-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+
+    transform: scale(1.15);
   }
 }

@@ -4,8 +4,10 @@ import SkillRadar from "../component/SkillRadar";
 import ProjectExpansion from "../component/ProjectExpansion";
 import { educationData, projectData } from "../data/constant";
 import ConstellationReveal from "../component/ConstellationReveal";
+import { useNavigate } from "react-router-dom";
 
 export function MainLayout() {
+  const navigate = useNavigate();
   return (
     <div className="main-layout">
       <Background />
@@ -42,7 +44,22 @@ export function MainLayout() {
           <ProjectExpansion project={educationData} />
         </div>
       </main>
-      <footer className="main-footer"></footer>
+      <footer className="main-footer">
+        <button
+          className="arcade-game-button"
+          onClick={() => navigate("/game")}
+        >
+          <span className="arcade-game-button-glow" />
+
+          <span className="arcade-game-button-content">
+            <span className="arcade-game-icon">✦</span>
+
+            <span>PLAY GAME</span>
+
+            <span className="arcade-game-arrow">→</span>
+          </span>
+        </button>
+      </footer>
     </div>
   );
 }

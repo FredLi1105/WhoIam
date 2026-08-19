@@ -15,6 +15,13 @@ const clamp = (value: number, min: number, max: number) =>
 
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
+interface Point {
+  x: number;
+  y: number;
+}
+
+type TextAnchor = "start" | "middle" | "end";
+
 function getPoint(center: number, radius: number, angle: number) {
   const radians = (angle - 90) * (Math.PI / 180);
 
@@ -24,9 +31,9 @@ function getPoint(center: number, radius: number, angle: number) {
   };
 }
 
-function pointsToString(points: any[]) {
+function pointsToString(points: Point[]) {
   return points
-    .map((point: { x: any; y: any }) => `${point.x},${point.y}`)
+    .map((point) => `${point.x},${point.y}`)
     .join(" ");
 }
 
@@ -46,18 +53,15 @@ export default function SkillRadar({
 
   const angles = useMemo(
     () => skills.map((_, index) => (360 / skills.length) * index),
-    [skills.length],
+    [skills],
   );
 
   /**
    * 重新开始动画
    */
   useEffect(() => {
-    let animationFrame: any;
-    let startTime: any = null;
-
-    setProgress(0);
-    setAnimationFinished(false);
+    let animationFrame: number | null = null;
+    let startTime: number | null = null;
 
     const animate = (timestamp: number) => {
       if (!startTime) {
@@ -76,10 +80,17 @@ export default function SkillRadar({
       }
     };
 
-    animationFrame = requestAnimationFrame(animate);
+    animationFrame = requestAnimationFrame((timestamp) => {
+      startTime = timestamp;
+      setProgress(0);
+      setAnimationFinished(false);
+      animate(timestamp);
+    });
 
     return () => {
-      cancelAnimationFrame(animationFrame);
+      if (animationFrame !== null) {
+        cancelAnimationFrame(animationFrame);
+      }
     };
   }, [skills, duration]);
 
@@ -286,7 +297,7 @@ export default function SkillRadar({
 
             const angle = angles[index];
 
-            let textAnchor = "middle";
+            let textAnchor: TextAnchor = "middle";
 
             if (angle > 15 && angle < 165) {
               textAnchor = "start";
@@ -301,7 +312,7 @@ export default function SkillRadar({
                 <text
                   x={point.x}
                   y={point.y}
-                  textAnchor={textAnchor as any}
+                  textAnchor={textAnchor}
                   dominantBaseline="middle"
                 >
                   {skill.label}
@@ -310,7 +321,7 @@ export default function SkillRadar({
                 <text
                   x={point.x}
                   y={point.y + 19}
-                  textAnchor={textAnchor as any}
+                  textAnchor={textAnchor}
                   dominantBaseline="middle"
                   className={
                     skill.value > 100

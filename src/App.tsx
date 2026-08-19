@@ -1,15 +1,11 @@
 import "./App.css";
-import { MainLayout } from "./layout/Main";
+import AppRouter from "./router/AppRouter";
 
 import "./style/Background.css";
 import "./style/IntroLogo.css";
 
 function App() {
-  return (
-    <div className="app  margin-top-20">
-      <MainLayout />
-    </div>
-  );
+  return <AppRouter />;
 }
 
 export default App;

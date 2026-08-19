@@ -1,24 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
+import {
+  clamp,
+  gravityStrategy,
+  type MovementStrategy,
+  type Point,
+} from "./constellationMovement";
 import "../style/ConstellationReveal.css";
-
-interface Point {
-  x: number;
-  y: number;
-}
 
 interface Star {
   start: Point;
   target: Point;
 }
-
-export interface MovementContext {
-  starIndex: number;
-  start: Point;
-  target: Point;
-  progress: number;
-}
-
-export type MovementStrategy = (context: MovementContext) => Point;
 
 interface ConstellationRevealProps {
   movementStrategy?: MovementStrategy;
@@ -49,45 +41,6 @@ const DEFAULT_STARS: Point[] = [
   { x: 355, y: 320 },
 ];
 
-const clamp = (value: number, min: number, max: number) => {
-  return Math.min(Math.max(value, min), max);
-};
-
-const easeInOut = (t: number) => {
-  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-};
-
-export const gravityStrategy: MovementStrategy = ({
-  starIndex,
-  start,
-  target,
-  progress,
-}) => {
-  const t = easeInOut(clamp(progress, 0, 1));
-
-  const dx = target.x - start.x;
-  const dy = target.y - start.y;
-
-  const distance = Math.sqrt(dx * dx + dy * dy);
-
-  if (distance === 0) {
-    return target;
-  }
-
-  const perpendicularX = -dy / distance;
-  const perpendicularY = dx / distance;
-
-  const curveStrength =
-    Math.min(distance * 0.18, 55) * (starIndex % 2 === 0 ? 1 : -1);
-
-  const curve = Math.sin(Math.PI * t) * curveStrength;
-
-  return {
-    x: start.x + dx * t + perpendicularX * curve,
-
-    y: start.y + dy * t + perpendicularY * curve,
-  };
-};
 
 const ConstellationReveal: React.FC<ConstellationRevealProps> = ({
   movementStrategy = gravityStrategy,
@@ -135,16 +88,8 @@ const ConstellationReveal: React.FC<ConstellationRevealProps> = ({
 
       startTimeRef.current = null;
 
-      setProgress(0);
-      setConnectedCount(0);
-      setShowText(false);
-
       return;
     }
-
-    setProgress(0);
-    setConnectedCount(0);
-    setShowText(false);
 
     startTimeRef.current = null;
 
@@ -236,17 +181,27 @@ const ConstellationReveal: React.FC<ConstellationRevealProps> = ({
     };
   };
 
+  const handleMouseEnter = () => {
+    setProgress(0);
+    setConnectedCount(0);
+    setShowText(false);
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    setProgress(0);
+    setConnectedCount(0);
+    setShowText(false);
+    setIsHovered(false);
+  };
+
   return (
     <div
       className={`constellation-reveal ${
         isHovered ? "constellation-reveal--active" : ""
       }`}
-      onMouseEnter={() => {
-        setIsHovered(true);
-      }}
-      onMouseLeave={() => {
-        setIsHovered(false);
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div className="constellation-reveal__stage">
         {TARGET_POINTS.map((_, index) => {
