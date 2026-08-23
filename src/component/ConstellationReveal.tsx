@@ -194,13 +194,36 @@ const ConstellationReveal: React.FC<ConstellationRevealProps> = ({
     setIsHovered(false);
   };
 
+  const handlePointerEnter = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse") {
+      handleMouseEnter();
+    }
+  };
+
+  const handlePointerLeave = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse") {
+      handleMouseLeave();
+    }
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") {
+      if (isHovered) {
+        handleMouseLeave();
+      } else {
+        handleMouseEnter();
+      }
+    }
+  };
+
   return (
     <div
       className={`constellation-reveal ${
         isHovered ? "constellation-reveal--active" : ""
       }`}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
+      onPointerDown={handlePointerDown}
     >
       <div className="constellation-reveal__stage">
         {TARGET_POINTS.map((_, index) => {

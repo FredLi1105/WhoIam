@@ -14,17 +14,7 @@ export function MainLayout() {
       <header className="main-header  margin-top-20">
         <IntroLogo initials="FL" name="Fred Li" />
       </header>
-      <main
-        className="main-content margin-top-20"
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "space-between",
-          width: "100vw",
-          justifyContent: "space-between",
-          padding: "80px 40px",
-        }}
-      >
+      <main className="main-content margin-top-20">
         <SkillRadar
           skills={[
             { label: "Frontend", value: 100 },

@@ -19,6 +19,7 @@ interface ProjectExpansionProps {
 }
 
 const CARD_WIDTH = 260;
+const CARD_HEIGHT = 180;
 const CARD_GAP = 18;
 
 const ProjectExpansion: React.FC<ProjectExpansionProps> = ({
@@ -57,6 +58,27 @@ const ProjectExpansion: React.FC<ProjectExpansionProps> = ({
     setVisibleCount(1);
   };
 
+  const handlePointerEnter = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse") {
+      handleMouseEnter();
+    }
+  };
+
+  const handlePointerLeave = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse") {
+      handleMouseLeave();
+    }
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") {
+      setIsHovered((isExpanded) => !isExpanded);
+      setVisibleCount((count) =>
+        count > 1 ? 1 : Math.min(2, components.length),
+      );
+    }
+  };
+
   if (!components.length) {
     return null;
   }
@@ -64,8 +86,17 @@ const ProjectExpansion: React.FC<ProjectExpansionProps> = ({
   return (
     <div
       className="project-expansion"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
+      onPointerDown={handlePointerDown}
+      style={
+        {
+          "--expanded-height": `${
+            visibleCount * CARD_HEIGHT +
+            Math.max(0, visibleCount - 1) * CARD_GAP
+          }px`,
+        } as React.CSSProperties
+      }
     >
       <div className="project-expansion__stage">
         {components.slice(0, visibleCount).map((component, index) => {
@@ -82,6 +113,7 @@ const ProjectExpansion: React.FC<ProjectExpansionProps> = ({
               style={
                 {
                   "--card-offset": `${offset}px`,
+                  "--card-index": index,
                   "--animation-duration": `${duration}ms`,
                 } as React.CSSProperties
               }

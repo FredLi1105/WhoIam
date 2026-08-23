@@ -8,6 +8,8 @@
 
   overflow: visible;
   z-index: 10;
+
+  transition: height 250ms ease;
 }
 
 .project-expansion__stage {
@@ -97,5 +99,46 @@
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+@media (max-width: 900px) {
+  .project-expansion {
+    width: min(var(--card-width), calc(100vw - 40px));
+    height: var(--expanded-height);
+  }
+
+  .project-expansion__stage {
+    height: var(--expanded-height);
+  }
+
+  .project-component-card {
+    top: calc(var(--card-index) * (var(--card-height) + 18px));
+    right: 0;
+    left: 0;
+    width: 100%;
+  }
+
+  .project-component-card--anchor {
+    top: 0;
+  }
+
+  .project-component-card--animated {
+    right: auto;
+    animation-name: project-slide-down;
+  }
+}
+
+@keyframes project-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(
+      calc(var(--card-index) * (var(--card-height) + 18px))
+    );
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

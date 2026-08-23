@@ -102,6 +102,19 @@ function Background() {
       mouse.y = -1000;
     };
 
+    const handlePointerMove = (event: PointerEvent) => {
+      mouse.previousX = mouse.x;
+      mouse.previousY = mouse.y;
+
+      mouse.x = event.clientX;
+      mouse.y = event.clientY;
+      mouse.active = true;
+    };
+
+    const handlePointerEnd = () => {
+      handleMouseLeave();
+    };
+
     const updateStars = () => {
       const radius = 100;
 
@@ -315,6 +328,12 @@ function Background() {
 
     window.addEventListener("mouseleave", handleMouseLeave);
 
+    window.addEventListener("pointermove", handlePointerMove);
+
+    window.addEventListener("pointerup", handlePointerEnd);
+
+    window.addEventListener("pointercancel", handlePointerEnd);
+
     return () => {
       cancelAnimationFrame(animationFrame);
 
@@ -323,6 +342,12 @@ function Background() {
       window.removeEventListener("mousemove", handleMouseMove);
 
       window.removeEventListener("mouseleave", handleMouseLeave);
+
+      window.removeEventListener("pointermove", handlePointerMove);
+
+      window.removeEventListener("pointerup", handlePointerEnd);
+
+      window.removeEventListener("pointercancel", handlePointerEnd);
     };
   }, []);
 
