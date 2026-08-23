@@ -21,6 +21,11 @@ interface ProjectExpansionProps {
 const CARD_WIDTH = 260;
 const CARD_HEIGHT = 180;
 const CARD_GAP = 18;
+const COMPACT_BREAKPOINT = "(max-width: 900px)";
+
+const isCompactViewport = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia(COMPACT_BREAKPOINT).matches;
 
 const ProjectExpansion: React.FC<ProjectExpansionProps> = ({
   project,
@@ -28,8 +33,25 @@ const ProjectExpansion: React.FC<ProjectExpansionProps> = ({
 }) => {
   const components = project.component ?? [];
 
-  const [isHovered, setIsHovered] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(1);
+  const [isHovered, setIsHovered] = useState(isCompactViewport);
+  const [visibleCount, setVisibleCount] = useState(() =>
+    isCompactViewport() ? components.length : 1,
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(COMPACT_BREAKPOINT);
+
+    const handleViewportChange = (event: MediaQueryListEvent) => {
+      setIsHovered(event.matches);
+      setVisibleCount(event.matches ? components.length : 1);
+    };
+
+    mediaQuery.addEventListener("change", handleViewportChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleViewportChange);
+    };
+  }, [components.length]);
 
   useEffect(() => {
     if (!isHovered || visibleCount >= components.length) {
