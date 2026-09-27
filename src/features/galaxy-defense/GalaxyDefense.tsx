@@ -3,14 +3,14 @@ import "./GalaxyDefense.css";
 
 type GameStatus = "ready" | "playing" | "gameover";
 type EquipmentType = "normal" | "spread" | "rapid";
-type BuffType = "equipment" | "bullet";
+type BuffType = "equipment" | "effect";
 
 interface Player {
   x: number;
   lives: number;
 }
 
-interface Bullet {
+interface Effect {
   id: number;
   x: number;
   y: number;
@@ -48,7 +48,7 @@ interface Buff {
   speed: number;
   type: BuffType;
   equipmentType?: EquipmentType;
-  bulletRows?: number;
+  effectRows?: number;
 }
 
 const WIDTH = 1100;
@@ -63,7 +63,7 @@ const CENTER_RIGHT = WIDTH - RIGHT_LANE_WIDTH;
 const PLAYER_Y = HEIGHT - 70;
 const PLAYER_RADIUS = 22;
 
-const BULLET_SPEED = 700;
+const EFFECT_SPEED = 700;
 
 const NORMAL_FIRE_INTERVAL = 320;
 const RAPID_FIRE_INTERVAL = 120;
@@ -80,7 +80,7 @@ const BUFF_FALL_SPEED = 65;
 
 const ENEMY_SPEED_REDUCTION = 0.82;
 
-const MAX_BULLET_ROWS = 3;
+const MAX_EFFECT_ROWS = 3;
 
 function randomBetween(min: number, max: number) {
   return min + Math.random() * (max - min);
@@ -157,15 +157,15 @@ function createEquipmentBuff(side: "left" | "right"): Buff {
   };
 }
 
-function createBulletBuff(): Buff {
+function createEffectBuff(): Buff {
   return {
     side: "right",
     x: WIDTH - RIGHT_LANE_WIDTH / 2,
     y: HEIGHT * 0.42,
     size: 24,
     speed: BUFF_FALL_SPEED,
-    type: "bullet",
-    bulletRows: 1,
+    type: "effect",
+    effectRows: 1,
   };
 }
 
@@ -193,7 +193,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, player: Player) {
   ctx.restore();
 }
 
-function drawBullet(ctx: CanvasRenderingContext2D, bullet: Bullet) {
+function drawEffect(ctx: CanvasRenderingContext2D, effect: Effect) {
   ctx.save();
 
   ctx.strokeStyle = "#facc15";
@@ -204,9 +204,9 @@ function drawBullet(ctx: CanvasRenderingContext2D, bullet: Bullet) {
 
   ctx.beginPath();
 
-  ctx.moveTo(bullet.x, bullet.y - 10);
+  ctx.moveTo(effect.x, effect.y - 10);
 
-  ctx.lineTo(bullet.x - bullet.vx * 0.015, bullet.y + 10);
+  ctx.lineTo(effect.x - effect.vx * 0.015, effect.y + 10);
 
   ctx.stroke();
 
@@ -416,7 +416,7 @@ export default function GalaxyDefense() {
 
   const targetXRef = useRef(WIDTH / 2);
 
-  const bulletsRef = useRef<Bullet[]>([]);
+  const effectsRef = useRef<Effect[]>([]);
 
   const enemiesRef = useRef<Enemy[]>([]);
 
@@ -427,7 +427,7 @@ export default function GalaxyDefense() {
 
   const buffsRef = useRef<Buff[]>([]);
 
-  const bulletIdRef = useRef(0);
+  const effectIdRef = useRef(0);
 
   const enemyIdRef = useRef(0);
 
@@ -448,7 +448,7 @@ export default function GalaxyDefense() {
 
   const equipmentRef = useRef<EquipmentType>("normal");
 
-  const bulletRowsRef = useRef(1);
+  const effectRowsRef = useRef(1);
 
   const [gameStatus, setGameStatus] = useState<GameStatus>("ready");
 
@@ -460,7 +460,7 @@ export default function GalaxyDefense() {
 
   const [equipment, setEquipment] = useState<EquipmentType>("normal");
 
-  const [bulletRows, setBulletRows] = useState(1);
+  const [effectRows, setEffectRows] = useState(1);
 
   const [leftBarrierLives, setLeftBarrierLives] = useState(BARRIER_MAX_LIVES);
 
@@ -507,7 +507,7 @@ export default function GalaxyDefense() {
 
     targetXRef.current = WIDTH / 2;
 
-    bulletsRef.current = [];
+    effectsRef.current = [];
 
     enemiesRef.current = [];
 
@@ -515,7 +515,7 @@ export default function GalaxyDefense() {
 
     buffsRef.current = [];
 
-    bulletIdRef.current = 0;
+    effectIdRef.current = 0;
 
     enemyIdRef.current = 0;
 
@@ -536,11 +536,11 @@ export default function GalaxyDefense() {
 
     equipmentRef.current = "normal";
 
-    bulletRowsRef.current = 1;
+    effectRowsRef.current = 1;
 
     setEquipment("normal");
 
-    setBulletRows(1);
+    setEffectRows(1);
 
     setScore(0);
 
@@ -572,11 +572,11 @@ export default function GalaxyDefense() {
       setEquipment(buff.equipmentType);
     }
 
-    if (buff.type === "bullet") {
-      if (bulletRowsRef.current < MAX_BULLET_ROWS) {
-        bulletRowsRef.current += 1;
+    if (buff.type === "effect") {
+      if (effectRowsRef.current < MAX_EFFECT_ROWS) {
+        effectRowsRef.current += 1;
 
-        setBulletRows(bulletRowsRef.current);
+        setEffectRows(effectRowsRef.current);
       }
     }
 
@@ -609,7 +609,7 @@ export default function GalaxyDefense() {
     const fire = () => {
       const currentEquipment = equipmentRef.current;
 
-      const rows = bulletRowsRef.current;
+      const rows = effectRowsRef.current;
 
       if (currentEquipment === "spread") {
         const spreadAngles = [-0.35, -0.17, 0, 0.17, 0.35];
@@ -618,11 +618,11 @@ export default function GalaxyDefense() {
           const rowOffset = (row - (rows - 1) / 2) * 15;
 
           for (const angle of spreadAngles) {
-            bulletsRef.current.push({
-              id: bulletIdRef.current++,
+            effectsRef.current.push({
+              id: effectIdRef.current++,
               x: playerRef.current.x + rowOffset,
               y: PLAYER_Y - PLAYER_RADIUS,
-              vx: Math.sin(angle) * BULLET_SPEED,
+              vx: Math.sin(angle) * EFFECT_SPEED,
               damage: 1,
             });
           }
@@ -634,8 +634,8 @@ export default function GalaxyDefense() {
       for (let row = 0; row < rows; row++) {
         const offset = (row - (rows - 1) / 2) * 16;
 
-        bulletsRef.current.push({
-          id: bulletIdRef.current++,
+        effectsRef.current.push({
+          id: effectIdRef.current++,
           x: playerRef.current.x + offset,
           y: PLAYER_Y - PLAYER_RADIUS,
           vx: 0,
@@ -695,10 +695,10 @@ export default function GalaxyDefense() {
         }
       }
 
-      for (const bullet of bulletsRef.current) {
-        bullet.x += bullet.vx * deltaTime;
+      for (const effect of effectsRef.current) {
+        effect.x += effect.vx * deltaTime;
 
-        bullet.y -= BULLET_SPEED * deltaTime;
+        effect.y -= EFFECT_SPEED * deltaTime;
       }
 
       for (const enemy of enemiesRef.current) {
@@ -709,12 +709,12 @@ export default function GalaxyDefense() {
         buff.y += buff.speed * deltaTime;
       }
 
-      const usedBullets = new Set<number>();
+      const usedEffects = new Set<number>();
 
       const deadEnemies = new Set<number>();
 
-      for (const bullet of bulletsRef.current) {
-        if (usedBullets.has(bullet.id)) {
+      for (const effect of effectsRef.current) {
+        if (usedEffects.has(effect.id)) {
           continue;
         }
 
@@ -723,16 +723,16 @@ export default function GalaxyDefense() {
             continue;
           }
 
-          const dx = bullet.x - enemy.x;
+          const dx = effect.x - enemy.x;
 
-          const dy = bullet.y - enemy.y;
+          const dy = effect.y - enemy.y;
 
           const distance = Math.sqrt(dx * dx + dy * dy);
 
           if (distance < enemy.size + 7) {
-            usedBullets.add(bullet.id);
+            usedEffects.add(effect.id);
 
-            enemy.lives -= bullet.damage;
+            enemy.lives -= effect.damage;
 
             if (enemy.lives <= 0) {
               deadEnemies.add(enemy.id);
@@ -747,8 +747,8 @@ export default function GalaxyDefense() {
         }
       }
 
-      for (const bullet of bulletsRef.current) {
-        if (usedBullets.has(bullet.id)) {
+      for (const effect of effectsRef.current) {
+        if (usedEffects.has(effect.id)) {
           continue;
         }
 
@@ -766,12 +766,12 @@ export default function GalaxyDefense() {
           const bottom = barrier.y + barrier.height / 2;
 
           if (
-            bullet.x >= left &&
-            bullet.x <= right &&
-            bullet.y >= top &&
-            bullet.y <= bottom
+            effect.x >= left &&
+            effect.x <= right &&
+            effect.y >= top &&
+            effect.y <= bottom
           ) {
-            usedBullets.add(bullet.id);
+            usedEffects.add(effect.id);
 
             if (
               time - lastBarrierHitRef.current[barrier.side] >=
@@ -795,7 +795,7 @@ export default function GalaxyDefense() {
 
                   setLeftBarrierLives(0);
                 } else {
-                  const buff = createBulletBuff();
+                  const buff = createEffectBuff();
 
                   buffsRef.current.push(buff);
 
@@ -815,12 +815,12 @@ export default function GalaxyDefense() {
         }
       }
 
-      bulletsRef.current = bulletsRef.current.filter(
-        (bullet) =>
-          !usedBullets.has(bullet.id) &&
-          bullet.y > -60 &&
-          bullet.x > -60 &&
-          bullet.x < WIDTH + 60,
+      effectsRef.current = effectsRef.current.filter(
+        (effect) =>
+          !usedEffects.has(effect.id) &&
+          effect.y > -60 &&
+          effect.x > -60 &&
+          effect.x < WIDTH + 60,
       );
 
       enemiesRef.current = enemiesRef.current.filter(
@@ -872,8 +872,8 @@ export default function GalaxyDefense() {
         drawEnemy(ctx, enemy);
       }
 
-      for (const bullet of bulletsRef.current) {
-        drawBullet(ctx, bullet);
+      for (const effect of effectsRef.current) {
+        drawEffect(ctx, effect);
       }
 
       for (const barrier of barriersRef.current) {
@@ -916,7 +916,7 @@ export default function GalaxyDefense() {
             </div>
 
             <div className="game-description">
-              Left: random equipment. Right: additional bullets.
+              Left: random equipment. Right: additional effects.
             </div>
 
             <div className="game-best-score">
@@ -947,7 +947,7 @@ export default function GalaxyDefense() {
               <span>EQUIPMENT: {getEquipmentName(equipment)}</span>
 
               <span>
-                BULLETS: {bulletRows}/{MAX_BULLET_ROWS}
+                EFFECTS: {effectRows}/{MAX_EFFECT_ROWS}
               </span>
 
               <span>ENEMY SPEED: {enemySpeedPercent}%</span>
@@ -963,7 +963,9 @@ export default function GalaxyDefense() {
           <div className="game-instructions">
             <span>MOVE THROUGH ALL THREE ZONES</span>
 
-            <span>LEFT = EQUIPMENT &nbsp;&nbsp;|&nbsp;&nbsp; RIGHT = BULLETS</span>
+            <span>
+              LEFT = EQUIPMENT &nbsp;&nbsp;|&nbsp;&nbsp; RIGHT = EFFECTS
+            </span>
           </div>
 
           <div className="barrier-status">
@@ -1006,7 +1008,7 @@ export default function GalaxyDefense() {
           <div className="buff-status">
             <span className="spread-info">LEFT: RANDOM SPREAD / RAPID</span>
 
-            <span className="bullet-info">RIGHT: +1 BULLET ROW</span>
+            <span className="effect-info">RIGHT: +1 EFFECT ROW</span>
           </div>
 
           {gameStatus === "gameover" && (
