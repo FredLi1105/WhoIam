@@ -229,6 +229,25 @@
     box-shadow 0.25s ease;
 }
 
+.graph-control-button {
+  width: 44px;
+  min-width: 44px;
+  height: 39px;
+  padding: 0;
+  border-radius: 12px;
+  letter-spacing: 0;
+}
+
+.graph-control-button--reset {
+  width: 96px;
+  min-width: 96px;
+  padding: 0 12px;
+}
+
+.graph-control-button .arcade-game-button-content {
+  gap: 0;
+}
+
 /*
  * Animated glowing border
  */

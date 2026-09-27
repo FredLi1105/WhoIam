@@ -1,10 +1,10 @@
 import IntroLogo from "../component/IntroLogo";
 import Background from "../component/Background";
 import SkillRadar from "../component/SkillRadar";
-import ProjectExpansion from "../component/ProjectExpansion";
-import { educationData, projectData } from "../data/constant";
-import ConstellationReveal from "../component/ConstellationReveal";
+// import ConstellationReveal from "../component/ConstellationReveal";
 import { useNavigate } from "react-router-dom";
+import NeuralNetworkGraph from "../component/NeuralNetworkGraph";
+import { neuralNetworkData } from "../data/neuralNetworkData";
 
 export function MainLayout() {
   const navigate = useNavigate();
@@ -15,24 +15,45 @@ export function MainLayout() {
         <IntroLogo initials="FL" name="Fred Li" />
       </header>
       <main className="main-content margin-top-20">
-        <SkillRadar
-          skills={[
-            { label: "Frontend", value: 100 },
-            { label: "Backend", value: 100 },
-            { label: "Deployment", value: 100 },
-            { label: "Design", value: 100 },
-            { label: "Creativity", value: 130 },
-            { label: "Testing", value: 100 },
-          ]}
-          duration={3000}
-        />
+        <section className="skill-radar-panel">
+          <SkillRadar
+            skills={[
+              { label: "Frontend", value: 100 },
+              { label: "Backend", value: 100 },
+              { label: "Deployment", value: 100 },
+              { label: "Design", value: 100 },
+              { label: "Creativity", value: 130 },
+              { label: "Testing", value: 100 },
+            ]}
+            duration={3000}
+          />
+          <p className="skill-radar-summary">
+            I’m a full-stack software engineer with 5 years of experience
+            building scalable applications across frontend, backend, cloud
+            infrastructure, AI, and robotics. I work primarily with Java,
+            TypeScript/JavaScript, and Python, using React, Node.js,
+            Spring/Spring Boot, MySQL, MongoDB, Neo4j, and CockroachDB, with
+            additional experience in AWS, Kubernetes, Terraform, Kafka,
+            Spinnaker, CI/CD, ROS, computer vision, and LLM-based applications.
+          </p>
+        </section>
+        <div className="neural-network-graph-container">
+          <NeuralNetworkGraph
+            data={neuralNetworkData}
+            animated={true}
+            zoomable={true}
+            draggable={true}
+            onNodeClick={(node) => {
+              console.log("Clicked:", node);
+            }}
+          />
+        </div>
+        {/* <ConstellationReveal duration={3000} /> */}
 
-        <ConstellationReveal duration={3000} />
-
-        <div className="flex-column">
+        {/* <div className="flex-column">
           <ProjectExpansion project={projectData} />
           <ProjectExpansion project={educationData} />
-        </div>
+        </div> */}
       </main>
       <footer className="main-footer">
         <button

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import "./GalaxyDefense.css";
 
 type GameStatus = "ready" | "playing" | "gameover";
+type WeaponType = "normal" | "spread" | "rapid";
+type BuffType = "weapon" | "bullet";
 
 interface Player {
   x: number;
@@ -12,6 +14,8 @@ interface Bullet {
   id: number;
   x: number;
   y: number;
+  vx: number;
+  damage: number;
 }
 
 interface Enemy {
@@ -24,78 +28,147 @@ interface Enemy {
   maxLives: number;
 }
 
+interface Barrier {
+  side: "left" | "right";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  lives: number;
+  maxLives: number;
+  active: boolean;
+  respawnTimer: number;
+}
+
 interface Buff {
+  side: "left" | "right";
   x: number;
   y: number;
   size: number;
   speed: number;
+  type: BuffType;
+  weaponType?: WeaponType;
+  bulletRows?: number;
 }
 
-const WIDTH = 900;
-const HEIGHT = 600;
+const WIDTH = 1100;
+const HEIGHT = 650;
 
-const PLAYER_Y = HEIGHT - 60;
-const PLAYER_RADIUS = 24;
+const LEFT_LANE_WIDTH = 180;
+const RIGHT_LANE_WIDTH = 180;
 
-const BULLET_SPEED = 650;
-const FIRE_INTERVAL = 300;
-const ENEMY_SPAWN_INTERVAL = 900;
+const CENTER_LEFT = LEFT_LANE_WIDTH;
+const CENTER_RIGHT = WIDTH - RIGHT_LANE_WIDTH;
 
-const BEST_SCORE_KEY = "galaxy-defense-best-score";
+const PLAYER_Y = HEIGHT - 70;
+const PLAYER_RADIUS = 22;
 
-/*
- * =========================
- * Shape
- * =========================
- */
+const BULLET_SPEED = 700;
 
-function getPolygonSides(lives: number): number | null {
-  if (lives <= 1) {
-    return null;
+const NORMAL_FIRE_INTERVAL = 320;
+const RAPID_FIRE_INTERVAL = 120;
+
+const ENEMY_SPAWN_INTERVAL = 320;
+
+const BARRIER_MAX_LIVES = 20;
+
+const BARRIER_HIT_COOLDOWN = 100;
+
+const BARRIER_RESPAWN_TIME = 5000;
+
+const BUFF_FALL_SPEED = 65;
+
+const ENEMY_SPEED_REDUCTION = 0.82;
+
+const MAX_BULLET_ROWS = 3;
+
+
+function randomBetween(min: number, max: number) {
+  return min + Math.random() * (max - min);
+}
+
+function getWeaponName(type: WeaponType) {
+  if (type === "spread") {
+    return "SPREAD";
   }
 
-  return lives + 1;
-}
-
-function drawHollowShape(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  radius: number,
-  lives: number,
-) {
-  const sides = getPolygonSides(lives);
-
-  ctx.beginPath();
-
-  if (sides === null) {
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-  } else {
-    for (let i = 0; i < sides; i++) {
-      const angle = (i * Math.PI * 2) / sides - Math.PI / 2;
-
-      const px = x + Math.cos(angle) * radius;
-
-      const py = y + Math.sin(angle) * radius;
-
-      if (i === 0) {
-        ctx.moveTo(px, py);
-      } else {
-        ctx.lineTo(px, py);
-      }
-    }
-
-    ctx.closePath();
+  if (type === "rapid") {
+    return "RAPID";
   }
 
-  ctx.stroke();
+  return "NORMAL";
 }
 
-/*
- * =========================
- * Player
- * =========================
- */
+function createEnemy(id: number, score: number): Enemy {
+  const size = randomBetween(13, 25);
+
+  const difficultyLevel = Math.floor(score / 300);
+
+  const maxPossibleLives = Math.min(1 + difficultyLevel, 6);
+
+  const maxLives = 1 + Math.floor(Math.random() * maxPossibleLives);
+
+  const speed = randomBetween(10, 30) + difficultyLevel * 4;
+
+  return {
+    id,
+    x: randomBetween(CENTER_LEFT + size, CENTER_RIGHT - size),
+    y: -size,
+    size,
+    speed,
+    lives: maxLives,
+    maxLives,
+  };
+}
+
+function createBarrier(side: "left" | "right"): Barrier {
+  const width = 92;
+  const height = 30;
+
+  const x =
+    side === "left" ? LEFT_LANE_WIDTH / 2 : WIDTH - RIGHT_LANE_WIDTH / 2;
+
+  return {
+    side,
+    x,
+    y: HEIGHT * 0.42,
+    width,
+    height,
+    lives: BARRIER_MAX_LIVES,
+    maxLives: BARRIER_MAX_LIVES,
+    active: true,
+    respawnTimer: 0,
+  };
+}
+
+function createWeaponBuff(side: "left" | "right"): Buff {
+  const weaponType: WeaponType = Math.random() < 0.5 ? "spread" : "rapid";
+
+  const x =
+    side === "left" ? LEFT_LANE_WIDTH / 2 : WIDTH - RIGHT_LANE_WIDTH / 2;
+
+  return {
+    side,
+    x,
+    y: HEIGHT * 0.42,
+    size: 24,
+    speed: BUFF_FALL_SPEED,
+    type: "weapon",
+    weaponType,
+  };
+}
+
+function createBulletBuff(): Buff {
+  return {
+    side: "right",
+    x: WIDTH - RIGHT_LANE_WIDTH / 2,
+    y: HEIGHT * 0.42,
+    size: 24,
+    speed: BUFF_FALL_SPEED,
+    type: "bullet",
+    bulletRows: 1,
+  };
+}
 
 function drawPlayer(ctx: CanvasRenderingContext2D, player: Player) {
   ctx.save();
@@ -103,33 +176,23 @@ function drawPlayer(ctx: CanvasRenderingContext2D, player: Player) {
   ctx.strokeStyle = "#4ade80";
   ctx.lineWidth = 3;
 
-  drawHollowShape(ctx, player.x, PLAYER_Y, PLAYER_RADIUS, player.lives);
+  ctx.shadowColor = "#4ade80";
+  ctx.shadowBlur = 12;
+
+  ctx.beginPath();
+
+  ctx.moveTo(player.x, PLAYER_Y - PLAYER_RADIUS);
+
+  ctx.lineTo(player.x - PLAYER_RADIUS, PLAYER_Y + PLAYER_RADIUS);
+
+  ctx.lineTo(player.x + PLAYER_RADIUS, PLAYER_Y + PLAYER_RADIUS);
+
+  ctx.closePath();
+
+  ctx.stroke();
 
   ctx.restore();
 }
-
-/*
- * =========================
- * Enemy
- * =========================
- */
-
-function drawEnemy(ctx: CanvasRenderingContext2D, enemy: Enemy) {
-  ctx.save();
-
-  ctx.strokeStyle = "#ef4444";
-  ctx.lineWidth = 3;
-
-  drawHollowShape(ctx, enemy.x, enemy.y, enemy.size, enemy.maxLives);
-
-  ctx.restore();
-}
-
-/*
- * =========================
- * Bullet
- * =========================
- */
 
 function drawBullet(ctx: CanvasRenderingContext2D, bullet: Bullet) {
   ctx.save();
@@ -137,158 +200,219 @@ function drawBullet(ctx: CanvasRenderingContext2D, bullet: Bullet) {
   ctx.strokeStyle = "#facc15";
   ctx.lineWidth = 3;
 
+  ctx.shadowColor = "#facc15";
+  ctx.shadowBlur = 8;
+
   ctx.beginPath();
 
-  ctx.moveTo(bullet.x, bullet.y - 12);
+  ctx.moveTo(bullet.x, bullet.y - 10);
 
-  ctx.lineTo(bullet.x, bullet.y + 12);
+  ctx.lineTo(bullet.x - bullet.vx * 0.015, bullet.y + 10);
 
   ctx.stroke();
 
   ctx.restore();
 }
 
-/*
- * =========================
- * Buff
- * =========================
- */
+function drawEnemy(ctx: CanvasRenderingContext2D, enemy: Enemy) {
+  ctx.save();
+
+  ctx.strokeStyle = "#ef4444";
+  ctx.lineWidth = 2.5;
+
+  ctx.shadowColor = "#ef4444";
+  ctx.shadowBlur = 6;
+
+  ctx.beginPath();
+
+  const sides = enemy.maxLives <= 1 ? 0 : enemy.maxLives + 1;
+
+  if (sides === 0) {
+    ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2);
+  } else {
+    for (let i = 0; i < sides; i++) {
+      const angle = (i * Math.PI * 2) / sides - Math.PI / 2;
+
+      const x = enemy.x + Math.cos(angle) * enemy.size;
+
+      const y = enemy.y + Math.sin(angle) * enemy.size;
+
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+
+    ctx.closePath();
+  }
+
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawBarrier(ctx: CanvasRenderingContext2D, barrier: Barrier) {
+  if (!barrier.active) {
+    return;
+  }
+
+  ctx.save();
+
+  const ratio = barrier.lives / barrier.maxLives;
+
+  ctx.strokeStyle = ratio > 0.5 ? "#60a5fa" : "#f97316";
+
+  ctx.lineWidth = 4;
+
+  ctx.shadowColor = ctx.strokeStyle;
+
+  ctx.shadowBlur = 15;
+
+  ctx.strokeRect(
+    barrier.x - barrier.width / 2,
+    barrier.y - barrier.height / 2,
+    barrier.width,
+    barrier.height,
+  );
+
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = "#07111f";
+
+  ctx.fillRect(
+    barrier.x - barrier.width / 2 + 5,
+    barrier.y - barrier.height / 2 + 5,
+    barrier.width - 10,
+    barrier.height - 10,
+  );
+
+  ctx.fillStyle = "#ffffff";
+
+  ctx.font = "bold 12px Arial";
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  ctx.fillText(`${barrier.lives}/${barrier.maxLives}`, barrier.x, barrier.y);
+
+  ctx.restore();
+}
 
 function drawBuff(ctx: CanvasRenderingContext2D, buff: Buff) {
   ctx.save();
 
-  ctx.strokeStyle = "#facc15";
+  if (buff.type === "weapon") {
+    if (buff.weaponType === "spread") {
+      ctx.strokeStyle = "#c084fc";
+    } else {
+      ctx.strokeStyle = "#38bdf8";
+    }
+  } else {
+    ctx.strokeStyle = "#facc15";
+  }
+
   ctx.lineWidth = 4;
 
-  ctx.shadowColor = "#facc15";
-  ctx.shadowBlur = 15;
+  ctx.shadowColor = ctx.strokeStyle;
 
-  const size = buff.size;
-
-  /*
-   * Diamond
-   */
+  ctx.shadowBlur = 20;
 
   ctx.beginPath();
 
-  ctx.moveTo(buff.x, buff.y - size);
+  ctx.moveTo(buff.x, buff.y - buff.size);
 
-  ctx.lineTo(buff.x + size, buff.y);
+  ctx.lineTo(buff.x + buff.size, buff.y);
 
-  ctx.lineTo(buff.x, buff.y + size);
+  ctx.lineTo(buff.x, buff.y + buff.size);
 
-  ctx.lineTo(buff.x - size, buff.y);
+  ctx.lineTo(buff.x - buff.size, buff.y);
 
   ctx.closePath();
 
   ctx.stroke();
 
-  /*
-   * Plus sign
-   */
+  ctx.fillStyle = "rgba(15,23,42,0.7)";
 
-  ctx.beginPath();
+  ctx.fill();
 
-  ctx.moveTo(buff.x - size * 0.45, buff.y);
+  ctx.fillStyle = ctx.strokeStyle;
 
-  ctx.lineTo(buff.x + size * 0.45, buff.y);
+  ctx.font = "bold 10px Arial";
 
-  ctx.moveTo(buff.x, buff.y - size * 0.45);
+  ctx.textAlign = "center";
 
-  ctx.lineTo(buff.x, buff.y + size * 0.45);
+  ctx.textBaseline = "middle";
 
-  ctx.stroke();
+  if (buff.type === "weapon") {
+    ctx.fillText(buff.weaponType === "spread" ? "S" : "R", buff.x, buff.y);
+  } else {
+    ctx.fillText("+1", buff.x, buff.y);
+  }
 
   ctx.restore();
 }
 
-/*
- * =========================
- * Enemy creation
- * =========================
- *
- * Difficulty increases every
- * 200 points.
- *
- * 0 - 199
- *   1 life
- *
- * 200 - 399
- *   1 ~ 2 lives
- *
- * 400 - 599
- *   1 ~ 3 lives
- *
- * 600 - 799
- *   1 ~ 4 lives
- *
- * 800 - 999
- *   1 ~ 5 lives
- *
- * 1000+
- *   1 ~ 6 lives
- */
+function drawBackground(ctx: CanvasRenderingContext2D) {
+  ctx.fillStyle = "#07111f";
 
-function createEnemy(id: number, score: number): Enemy {
-  const size = 20 + Math.random() * 12;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  const difficultyLevel = Math.floor(score / 200);
+  ctx.fillStyle = "#111827";
 
-  const maxPossibleLives = Math.min(difficultyLevel + 1, 6);
+  ctx.fillRect(0, 0, LEFT_LANE_WIDTH, HEIGHT);
 
-  const maxLives = 1 + Math.floor(Math.random() * maxPossibleLives);
+  ctx.fillRect(WIDTH - RIGHT_LANE_WIDTH, 0, RIGHT_LANE_WIDTH, HEIGHT);
 
-  const speed = 60 + Math.random() * 40 + difficultyLevel * 5;
+  ctx.strokeStyle = "#334155";
 
-  return {
-    id,
+  ctx.lineWidth = 2;
 
-    x: size + Math.random() * (WIDTH - size * 2),
+  ctx.beginPath();
 
-    y: -size,
+  ctx.moveTo(LEFT_LANE_WIDTH, 0);
 
-    size,
+  ctx.lineTo(LEFT_LANE_WIDTH, HEIGHT);
 
-    speed,
+  ctx.moveTo(WIDTH - RIGHT_LANE_WIDTH, 0);
 
-    lives: maxLives,
+  ctx.lineTo(WIDTH - RIGHT_LANE_WIDTH, HEIGHT);
 
-    maxLives,
-  };
+  ctx.stroke();
+
+  ctx.strokeStyle = "#172033";
+
+  ctx.lineWidth = 1;
+
+  for (let y = 0; y < HEIGHT; y += 50) {
+    ctx.beginPath();
+
+    ctx.moveTo(CENTER_LEFT, y);
+
+    ctx.lineTo(CENTER_RIGHT, y);
+
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = "#94a3b8";
+
+  ctx.font = "bold 13px Arial";
+
+  ctx.textAlign = "center";
+
+  ctx.fillText("WEAPON ZONE", LEFT_LANE_WIDTH / 2, 30);
+
+  ctx.fillText("ENEMY ZONE", WIDTH / 2, 30);
+
+  ctx.fillText("UPGRADE ZONE", WIDTH - RIGHT_LANE_WIDTH / 2, 30);
 }
-
-/*
- * =========================
- * Buff creation
- * =========================
- */
-
-function createBuff(): Buff {
-  const size = 22;
-
-  return {
-    x: size + Math.random() * (WIDTH - size * 2),
-
-    y: -size,
-
-    size,
-
-    speed: 90,
-  };
-}
-
-/*
- * =========================
- * Game
- * =========================
- */
 
 export default function GalaxyDefense() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const playerRef = useRef<Player>({
     x: WIDTH / 2,
-    lives: 1,
+    lives: 3,
   });
 
   const targetXRef = useRef(WIDTH / 2);
@@ -297,7 +421,12 @@ export default function GalaxyDefense() {
 
   const enemiesRef = useRef<Enemy[]>([]);
 
-  const buffRef = useRef<Buff | null>(null);
+  const barriersRef = useRef<Barrier[]>([
+    createBarrier("left"),
+    createBarrier("right"),
+  ]);
+
+  const buffsRef = useRef<Buff[]>([]);
 
   const bulletIdRef = useRef(0);
 
@@ -305,38 +434,40 @@ export default function GalaxyDefense() {
 
   const scoreRef = useRef(0);
 
-  /*
-   * Last 500 point threshold
-   * that generated a buff.
-   */
-
-  const lastBuffScoreRef = useRef(0);
-
   const lastTimeRef = useRef(0);
 
   const lastShotRef = useRef(0);
 
   const lastSpawnRef = useRef(0);
 
+  const lastBarrierHitRef = useRef({
+    left: 0,
+    right: 0,
+  });
+
+  const enemySpeedMultiplierRef = useRef(1);
+
+  const weaponRef = useRef<WeaponType>("normal");
+
+  const bulletRowsRef = useRef(1);
+
   const [gameStatus, setGameStatus] = useState<GameStatus>("ready");
 
   const [score, setScore] = useState(0);
 
-  const [lives, setLives] = useState(1);
+  const [lives, setLives] = useState(3);
 
-  const [bestScore, setBestScore] = useState(() => {
-    const saved = localStorage.getItem(BEST_SCORE_KEY);
+  const [bestScore, setBestScore] = useState(0);
 
-    return saved ? Number(saved) : 0;
-  });
+  const [weapon, setWeapon] = useState<WeaponType>("normal");
 
-  const [buffVisible, setBuffVisible] = useState(false);
+  const [bulletRows, setBulletRows] = useState(1);
 
-  /*
-   * =========================
-   * Mouse
-   * =========================
-   */
+  const [leftBarrierLives, setLeftBarrierLives] = useState(BARRIER_MAX_LIVES);
+
+  const [rightBarrierLives, setRightBarrierLives] = useState(BARRIER_MAX_LIVES);
+
+  const [enemySpeedPercent, setEnemySpeedPercent] = useState(100);
 
   const updateTargetX = (clientX: number) => {
     const canvas = canvasRef.current;
@@ -361,12 +492,6 @@ export default function GalaxyDefense() {
     updateTargetX(event.clientX);
   };
 
-  /*
-   * =========================
-   * Touch
-   * =========================
-   */
-
   const handleTouchMove = (event: React.TouchEvent<HTMLCanvasElement>) => {
     if (event.touches.length === 0) {
       return;
@@ -375,16 +500,10 @@ export default function GalaxyDefense() {
     updateTargetX(event.touches[0].clientX);
   };
 
-  /*
-   * =========================
-   * Start
-   * =========================
-   */
-
   const startGame = () => {
     playerRef.current = {
       x: WIDTH / 2,
-      lives: 1,
+      lives: 3,
     };
 
     targetXRef.current = WIDTH / 2;
@@ -393,7 +512,9 @@ export default function GalaxyDefense() {
 
     enemiesRef.current = [];
 
-    buffRef.current = null;
+    barriersRef.current = [createBarrier("left"), createBarrier("right")];
+
+    buffsRef.current = [];
 
     bulletIdRef.current = 0;
 
@@ -401,66 +522,71 @@ export default function GalaxyDefense() {
 
     scoreRef.current = 0;
 
-    lastBuffScoreRef.current = 0;
-
     lastTimeRef.current = 0;
 
     lastShotRef.current = 0;
 
     lastSpawnRef.current = 0;
 
+    lastBarrierHitRef.current = {
+      left: 0,
+      right: 0,
+    };
+
+    enemySpeedMultiplierRef.current = 1;
+
+    weaponRef.current = "normal";
+
+    bulletRowsRef.current = 1;
+
+    setWeapon("normal");
+
+    setBulletRows(1);
+
     setScore(0);
 
-    setLives(1);
+    setLives(3);
 
-    setBuffVisible(false);
+    setLeftBarrierLives(BARRIER_MAX_LIVES);
+
+    setRightBarrierLives(BARRIER_MAX_LIVES);
+
+    setEnemySpeedPercent(100);
 
     setGameStatus("playing");
   };
-
-  /*
-   * =========================
-   * Finish
-   * =========================
-   */
 
   const finishGame = () => {
     const finalScore = scoreRef.current;
 
     if (finalScore > bestScore) {
-      localStorage.setItem(BEST_SCORE_KEY, String(finalScore));
-
       setBestScore(finalScore);
     }
-
-    buffRef.current = null;
-
-    setBuffVisible(false);
 
     setGameStatus("gameover");
   };
 
-  /*
-   * =========================
-   * Collect Buff
-   * =========================
-   */
+  const collectBuff = (buff: Buff) => {
+    if (buff.type === "weapon" && buff.weaponType) {
+      weaponRef.current = buff.weaponType;
 
-  const collectBuff = () => {
-    playerRef.current.lives += 1;
+      setWeapon(buff.weaponType);
+    }
 
-    setLives(playerRef.current.lives);
+    if (buff.type === "bullet") {
+      if (bulletRowsRef.current < MAX_BULLET_ROWS) {
+        bulletRowsRef.current += 1;
 
-    buffRef.current = null;
+        setBulletRows(bulletRowsRef.current);
+      }
+    }
 
-    setBuffVisible(false);
+    enemySpeedMultiplierRef.current *= ENEMY_SPEED_REDUCTION;
+
+    setEnemySpeedPercent(
+      Math.max(10, Math.round(enemySpeedMultiplierRef.current * 100)),
+    );
   };
-
-  /*
-   * =========================
-   * Game Loop
-   * =========================
-   */
 
   useEffect(() => {
     if (gameStatus !== "playing") {
@@ -481,55 +607,68 @@ export default function GalaxyDefense() {
 
     let animationId = 0;
 
+    const fire = () => {
+      const currentWeapon = weaponRef.current;
+
+      const rows = bulletRowsRef.current;
+
+      if (currentWeapon === "spread") {
+        const spreadAngles = [-0.35, -0.17, 0, 0.17, 0.35];
+
+        for (let row = 0; row < rows; row++) {
+          const rowOffset = (row - (rows - 1) / 2) * 15;
+
+          for (const angle of spreadAngles) {
+            bulletsRef.current.push({
+              id: bulletIdRef.current++,
+              x: playerRef.current.x + rowOffset,
+              y: PLAYER_Y - PLAYER_RADIUS,
+              vx: Math.sin(angle) * BULLET_SPEED,
+              damage: 1,
+            });
+          }
+        }
+
+        return;
+      }
+
+      for (let row = 0; row < rows; row++) {
+        const offset = (row - (rows - 1) / 2) * 16;
+
+        bulletsRef.current.push({
+          id: bulletIdRef.current++,
+          x: playerRef.current.x + offset,
+          y: PLAYER_Y - PLAYER_RADIUS,
+          vx: 0,
+          damage: 1,
+        });
+      }
+    };
+
     const gameLoop = (time: number) => {
       const deltaTime =
-        lastTimeRef.current === 0 ? 0 : (time - lastTimeRef.current) / 1000;
+        lastTimeRef.current === 0
+          ? 0
+          : Math.min((time - lastTimeRef.current) / 1000, 0.05);
 
       lastTimeRef.current = time;
 
-      /*
-       * Background
-       */
-
-      ctx.clearRect(0, 0, WIDTH, HEIGHT);
-
-      ctx.fillStyle = "#07111f";
-
-      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      drawBackground(ctx);
 
       const player = playerRef.current;
 
-      /*
-       * =========================
-       * Player movement
-       * =========================
-       */
-
       player.x += (targetXRef.current - player.x) * Math.min(1, deltaTime * 12);
 
-      /*
-       * =========================
-       * Auto fire
-       * =========================
-       */
+      const fireInterval =
+        weaponRef.current === "rapid"
+          ? RAPID_FIRE_INTERVAL
+          : NORMAL_FIRE_INTERVAL;
 
-      if (time - lastShotRef.current >= FIRE_INTERVAL) {
-        bulletsRef.current.push({
-          id: bulletIdRef.current++,
-
-          x: player.x,
-
-          y: PLAYER_Y - PLAYER_RADIUS,
-        });
+      if (time - lastShotRef.current >= fireInterval) {
+        fire();
 
         lastShotRef.current = time;
       }
-
-      /*
-       * =========================
-       * Spawn enemy
-       * =========================
-       */
 
       if (time - lastSpawnRef.current >= ENEMY_SPAWN_INTERVAL) {
         enemiesRef.current.push(
@@ -539,81 +678,49 @@ export default function GalaxyDefense() {
         lastSpawnRef.current = time;
       }
 
-      /*
-       * =========================
-       * Buff every 500 points
-       * =========================
-       */
+      for (const barrier of barriersRef.current) {
+        if (!barrier.active) {
+          barrier.respawnTimer -= deltaTime * 1000;
 
-      const currentScore = scoreRef.current;
+          if (barrier.respawnTimer <= 0) {
+            barrier.active = true;
 
-      const nextBuffScore = lastBuffScoreRef.current + 500;
+            barrier.lives = barrier.maxLives;
 
-      if (currentScore >= nextBuffScore && buffRef.current === null) {
-        buffRef.current = createBuff();
-
-        lastBuffScoreRef.current = Math.floor(currentScore / 500) * 500;
-
-        setBuffVisible(true);
-      }
-
-      /*
-       * =========================
-       * Bullet movement
-       * =========================
-       */
-
-      for (const bullet of bulletsRef.current) {
-        bullet.y -= BULLET_SPEED * deltaTime;
-      }
-
-      bulletsRef.current = bulletsRef.current.filter(
-        (bullet) => bullet.y > -30,
-      );
-
-      /*
-       * =========================
-       * Enemy movement
-       * =========================
-       */
-
-      for (const enemy of enemiesRef.current) {
-        enemy.y += enemy.speed * deltaTime;
-      }
-
-      /*
-       * =========================
-       * Buff movement
-       * =========================
-       */
-
-      if (buffRef.current) {
-        buffRef.current.y += buffRef.current.speed * deltaTime;
-
-        if (buffRef.current.y > HEIGHT + buffRef.current.size) {
-          buffRef.current = null;
-
-          setBuffVisible(false);
+            if (barrier.side === "left") {
+              setLeftBarrierLives(barrier.maxLives);
+            } else {
+              setRightBarrierLives(barrier.maxLives);
+            }
+          }
         }
       }
 
-      /*
-       * =========================
-       * Bullet / Enemy collision
-       * =========================
-       */
+      for (const bullet of bulletsRef.current) {
+        bullet.x += bullet.vx * deltaTime;
 
-      const deadEnemies = new Set<number>();
+        bullet.y -= BULLET_SPEED * deltaTime;
+      }
+
+      for (const enemy of enemiesRef.current) {
+        enemy.y += enemy.speed * enemySpeedMultiplierRef.current * deltaTime;
+      }
+
+      for (const buff of buffsRef.current) {
+        buff.y += buff.speed * deltaTime;
+      }
 
       const usedBullets = new Set<number>();
 
+      const deadEnemies = new Set<number>();
+
       for (const bullet of bulletsRef.current) {
+        if (usedBullets.has(bullet.id)) {
+          continue;
+        }
+
         for (const enemy of enemiesRef.current) {
           if (deadEnemies.has(enemy.id)) {
-            continue;
-          }
-
-          if (usedBullets.has(bullet.id)) {
             continue;
           }
 
@@ -623,22 +730,15 @@ export default function GalaxyDefense() {
 
           const distance = Math.sqrt(dx * dx + dy * dy);
 
-          if (distance < enemy.size + 8) {
+          if (distance < enemy.size + 7) {
             usedBullets.add(bullet.id);
 
-            /*
-             * Score is based
-             * on enemy max lives.
-             */
-
-            const enemyScore = enemy.maxLives * 10;
-
-            enemy.lives -= 1;
+            enemy.lives -= bullet.damage;
 
             if (enemy.lives <= 0) {
               deadEnemies.add(enemy.id);
 
-              scoreRef.current += enemyScore;
+              scoreRef.current += enemy.maxLives * 10;
 
               setScore(scoreRef.current);
             }
@@ -648,30 +748,88 @@ export default function GalaxyDefense() {
         }
       }
 
-      /*
-       * Remove bullets
-       */
+      for (const bullet of bulletsRef.current) {
+        if (usedBullets.has(bullet.id)) {
+          continue;
+        }
+
+        for (const barrier of barriersRef.current) {
+          if (!barrier.active) {
+            continue;
+          }
+
+          const left = barrier.x - barrier.width / 2;
+
+          const right = barrier.x + barrier.width / 2;
+
+          const top = barrier.y - barrier.height / 2;
+
+          const bottom = barrier.y + barrier.height / 2;
+
+          if (
+            bullet.x >= left &&
+            bullet.x <= right &&
+            bullet.y >= top &&
+            bullet.y <= bottom
+          ) {
+            usedBullets.add(bullet.id);
+
+            if (
+              time - lastBarrierHitRef.current[barrier.side] >=
+              BARRIER_HIT_COOLDOWN
+            ) {
+              lastBarrierHitRef.current[barrier.side] = time;
+
+              barrier.lives -= 1;
+
+              if (barrier.lives <= 0) {
+                barrier.lives = 0;
+
+                barrier.active = false;
+
+                barrier.respawnTimer = BARRIER_RESPAWN_TIME;
+
+                if (barrier.side === "left") {
+                  const buff = createWeaponBuff("left");
+
+                  buffsRef.current.push(buff);
+
+                  setLeftBarrierLives(0);
+                } else {
+                  const buff = createBulletBuff();
+
+                  buffsRef.current.push(buff);
+
+                  setRightBarrierLives(0);
+                }
+              } else {
+                if (barrier.side === "left") {
+                  setLeftBarrierLives(barrier.lives);
+                } else {
+                  setRightBarrierLives(barrier.lives);
+                }
+              }
+            }
+
+            break;
+          }
+        }
+      }
 
       bulletsRef.current = bulletsRef.current.filter(
-        (bullet) => !usedBullets.has(bullet.id),
+        (bullet) =>
+          !usedBullets.has(bullet.id) &&
+          bullet.y > -60 &&
+          bullet.x > -60 &&
+          bullet.x < WIDTH + 60,
       );
-
-      /*
-       * Remove enemies
-       */
 
       enemiesRef.current = enemiesRef.current.filter(
         (enemy) => !deadEnemies.has(enemy.id),
       );
 
-      /*
-       * =========================
-       * Enemy reaches player
-       * =========================
-       */
-
       const hitEnemies = enemiesRef.current.filter(
-        (enemy) => enemy.y + enemy.size >= PLAYER_Y - PLAYER_RADIUS,
+        (enemy) => enemy.y - enemy.size >= PLAYER_Y - PLAYER_RADIUS,
       );
 
       if (hitEnemies.length > 0) {
@@ -683,24 +841,17 @@ export default function GalaxyDefense() {
 
         player.lives -= hitEnemies.length;
 
-        setLives(player.lives);
+        setLives(Math.max(0, player.lives));
 
         if (player.lives <= 0) {
           finishGame();
-
           return;
         }
       }
 
-      /*
-       * =========================
-       * Buff collision
-       * =========================
-       */
+      const collectedBuffs = new Set<Buff>();
 
-      const buff = buffRef.current;
-
-      if (buff) {
+      for (const buff of buffsRef.current) {
         const dx = player.x - buff.x;
 
         const dy = PLAYER_Y - buff.y;
@@ -708,26 +859,30 @@ export default function GalaxyDefense() {
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance < PLAYER_RADIUS + buff.size) {
-          collectBuff();
+          collectBuff(buff);
+
+          collectedBuffs.add(buff);
         }
       }
 
-      /*
-       * =========================
-       * Draw
-       * =========================
-       */
-
-      for (const bullet of bulletsRef.current) {
-        drawBullet(ctx, bullet);
-      }
+      buffsRef.current = buffsRef.current.filter(
+        (buff) => !collectedBuffs.has(buff) && buff.y < HEIGHT + buff.size,
+      );
 
       for (const enemy of enemiesRef.current) {
         drawEnemy(ctx, enemy);
       }
 
-      if (buffRef.current) {
-        drawBuff(ctx, buffRef.current);
+      for (const bullet of bulletsRef.current) {
+        drawBullet(ctx, bullet);
+      }
+
+      for (const barrier of barriersRef.current) {
+        drawBarrier(ctx, barrier);
+      }
+
+      for (const buff of buffsRef.current) {
+        drawBuff(ctx, buff);
       }
 
       drawPlayer(ctx, player);
@@ -742,12 +897,6 @@ export default function GalaxyDefense() {
     };
   }, [gameStatus, bestScore]);
 
-  /*
-   * =========================
-   * Ready screen
-   * =========================
-   */
-
   if (gameStatus === "ready") {
     return (
       <div className="game-page">
@@ -757,11 +906,19 @@ export default function GalaxyDefense() {
           <div className="game-start-card">
             <div className="game-title">GALAXY DEFENSE</div>
 
+            <div className="game-description">THREE LANE DEFENSE SYSTEM</div>
+
             <div className="game-description">
-              Move your mouse or finger to move.
+              Move freely between all zones.
             </div>
 
-            <div className="game-description">Destroy enemies and survive.</div>
+            <div className="game-description">
+              Destroy side barriers to obtain upgrades.
+            </div>
+
+            <div className="game-description">
+              Left: random weapon. Right: additional bullets.
+            </div>
 
             <div className="game-best-score">
               BEST SCORE <span>{bestScore}</span>
@@ -776,25 +933,25 @@ export default function GalaxyDefense() {
     );
   }
 
-  /*
-   * =========================
-   * Game page
-   * =========================
-   */
-
   return (
     <div className="game-page">
       <MeteorBackground />
 
       <div className="game-content">
         <div className="game-wrapper">
-          {/* HUD */}
-
           <div className="game-hud">
             <div className="game-stats">
               <span>SCORE: {score}</span>
 
               <span>LIFE: {lives}</span>
+
+              <span>WEAPON: {getWeaponName(weapon)}</span>
+
+              <span>
+                BULLETS: {bulletRows}/{MAX_BULLET_ROWS}
+              </span>
+
+              <span>ENEMY SPEED: {enemySpeedPercent}%</span>
 
               <span>BEST: {bestScore}</span>
             </div>
@@ -804,7 +961,39 @@ export default function GalaxyDefense() {
             </button>
           </div>
 
-          {/* Canvas */}
+          <div className="game-instructions">
+            <span>MOVE THROUGH ALL THREE ZONES</span>
+
+            <span>LEFT = WEAPON &nbsp;&nbsp;|&nbsp;&nbsp; RIGHT = BULLETS</span>
+          </div>
+
+          <div className="barrier-status">
+            <div
+              className={
+                leftBarrierLives === 0
+                  ? "barrier-label destroyed"
+                  : "barrier-label"
+              }
+            >
+              LEFT BARRIER:{" "}
+              {leftBarrierLives === 0
+                ? "RESPAWNING..."
+                : `${leftBarrierLives}/${BARRIER_MAX_LIVES}`}
+            </div>
+
+            <div
+              className={
+                rightBarrierLives === 0
+                  ? "barrier-label destroyed"
+                  : "barrier-label"
+              }
+            >
+              RIGHT BARRIER:{" "}
+              {rightBarrierLives === 0
+                ? "RESPAWNING..."
+                : `${rightBarrierLives}/${BARRIER_MAX_LIVES}`}
+            </div>
+          </div>
 
           <canvas
             ref={canvasRef}
@@ -815,11 +1004,11 @@ export default function GalaxyDefense() {
             className="game-canvas"
           />
 
-          {/* Buff indicator */}
+          <div className="buff-status">
+            <span className="spread-info">LEFT: RANDOM SPREAD / RAPID</span>
 
-          {buffVisible && <div className="buff-indicator">+1 LIFE</div>}
-
-          {/* Game Over */}
+            <span className="bullet-info">RIGHT: +1 BULLET ROW</span>
+          </div>
 
           {gameStatus === "gameover" && (
             <div className="game-over">
@@ -844,12 +1033,6 @@ export default function GalaxyDefense() {
   );
 }
 
-/*
- * =========================
- * Meteor Background
- * =========================
- */
-
 function MeteorBackground() {
   return (
     <div className="meteor-background">
@@ -859,7 +1042,6 @@ function MeteorBackground() {
       <span className="meteor meteor-4" />
       <span className="meteor meteor-5" />
       <span className="meteor meteor-6" />
-
       <span className="meteor meteor-7" />
       <span className="meteor meteor-8" />
     </div>
