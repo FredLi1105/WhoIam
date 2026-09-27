@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import "./GalaxyDefense.css";
 
 type GameStatus = "ready" | "playing" | "gameover";
-type WeaponType = "normal" | "spread" | "rapid";
-type BuffType = "weapon" | "bullet";
+type EquipmentType = "normal" | "spread" | "rapid";
+type BuffType = "equipment" | "bullet";
 
 interface Player {
   x: number;
@@ -47,7 +47,7 @@ interface Buff {
   size: number;
   speed: number;
   type: BuffType;
-  weaponType?: WeaponType;
+  equipmentType?: EquipmentType;
   bulletRows?: number;
 }
 
@@ -86,7 +86,7 @@ function randomBetween(min: number, max: number) {
   return min + Math.random() * (max - min);
 }
 
-function getWeaponName(type: WeaponType) {
+function getEquipmentName(type: EquipmentType) {
   if (type === "spread") {
     return "SPREAD";
   }
@@ -140,8 +140,8 @@ function createBarrier(side: "left" | "right"): Barrier {
   };
 }
 
-function createWeaponBuff(side: "left" | "right"): Buff {
-  const weaponType: WeaponType = Math.random() < 0.5 ? "spread" : "rapid";
+function createEquipmentBuff(side: "left" | "right"): Buff {
+  const equipmentType: EquipmentType = Math.random() < 0.5 ? "spread" : "rapid";
 
   const x =
     side === "left" ? LEFT_LANE_WIDTH / 2 : WIDTH - RIGHT_LANE_WIDTH / 2;
@@ -152,8 +152,8 @@ function createWeaponBuff(side: "left" | "right"): Buff {
     y: HEIGHT * 0.42,
     size: 24,
     speed: BUFF_FALL_SPEED,
-    type: "weapon",
-    weaponType,
+    type: "equipment",
+    equipmentType,
   };
 }
 
@@ -301,8 +301,8 @@ function drawBarrier(ctx: CanvasRenderingContext2D, barrier: Barrier) {
 function drawBuff(ctx: CanvasRenderingContext2D, buff: Buff) {
   ctx.save();
 
-  if (buff.type === "weapon") {
-    if (buff.weaponType === "spread") {
+  if (buff.type === "equipment") {
+    if (buff.equipmentType === "spread") {
       ctx.strokeStyle = "#c084fc";
     } else {
       ctx.strokeStyle = "#38bdf8";
@@ -343,8 +343,8 @@ function drawBuff(ctx: CanvasRenderingContext2D, buff: Buff) {
 
   ctx.textBaseline = "middle";
 
-  if (buff.type === "weapon") {
-    ctx.fillText(buff.weaponType === "spread" ? "S" : "R", buff.x, buff.y);
+  if (buff.type === "equipment") {
+    ctx.fillText(buff.equipmentType === "spread" ? "S" : "R", buff.x, buff.y);
   } else {
     ctx.fillText("+1", buff.x, buff.y);
   }
@@ -399,7 +399,7 @@ function drawBackground(ctx: CanvasRenderingContext2D) {
 
   ctx.textAlign = "center";
 
-  ctx.fillText("WEAPON ZONE", LEFT_LANE_WIDTH / 2, 30);
+  ctx.fillText("EQUIPMENT ZONE", LEFT_LANE_WIDTH / 2, 30);
 
   ctx.fillText("ENEMY ZONE", WIDTH / 2, 30);
 
@@ -446,7 +446,7 @@ export default function GalaxyDefense() {
 
   const enemySpeedMultiplierRef = useRef(1);
 
-  const weaponRef = useRef<WeaponType>("normal");
+  const equipmentRef = useRef<EquipmentType>("normal");
 
   const bulletRowsRef = useRef(1);
 
@@ -458,7 +458,7 @@ export default function GalaxyDefense() {
 
   const [bestScore, setBestScore] = useState(0);
 
-  const [weapon, setWeapon] = useState<WeaponType>("normal");
+  const [equipment, setEquipment] = useState<EquipmentType>("normal");
 
   const [bulletRows, setBulletRows] = useState(1);
 
@@ -534,11 +534,11 @@ export default function GalaxyDefense() {
 
     enemySpeedMultiplierRef.current = 1;
 
-    weaponRef.current = "normal";
+    equipmentRef.current = "normal";
 
     bulletRowsRef.current = 1;
 
-    setWeapon("normal");
+    setEquipment("normal");
 
     setBulletRows(1);
 
@@ -566,10 +566,10 @@ export default function GalaxyDefense() {
   };
 
   const collectBuff = (buff: Buff) => {
-    if (buff.type === "weapon" && buff.weaponType) {
-      weaponRef.current = buff.weaponType;
+    if (buff.type === "equipment" && buff.equipmentType) {
+      equipmentRef.current = buff.equipmentType;
 
-      setWeapon(buff.weaponType);
+      setEquipment(buff.equipmentType);
     }
 
     if (buff.type === "bullet") {
@@ -607,11 +607,11 @@ export default function GalaxyDefense() {
     let animationId = 0;
 
     const fire = () => {
-      const currentWeapon = weaponRef.current;
+      const currentEquipment = equipmentRef.current;
 
       const rows = bulletRowsRef.current;
 
-      if (currentWeapon === "spread") {
+      if (currentEquipment === "spread") {
         const spreadAngles = [-0.35, -0.17, 0, 0.17, 0.35];
 
         for (let row = 0; row < rows; row++) {
@@ -659,7 +659,7 @@ export default function GalaxyDefense() {
       player.x += (targetXRef.current - player.x) * Math.min(1, deltaTime * 12);
 
       const fireInterval =
-        weaponRef.current === "rapid"
+        equipmentRef.current === "rapid"
           ? RAPID_FIRE_INTERVAL
           : NORMAL_FIRE_INTERVAL;
 
@@ -789,7 +789,7 @@ export default function GalaxyDefense() {
                 barrier.respawnTimer = BARRIER_RESPAWN_TIME;
 
                 if (barrier.side === "left") {
-                  const buff = createWeaponBuff("left");
+                  const buff = createEquipmentBuff("left");
 
                   buffsRef.current.push(buff);
 
@@ -916,7 +916,7 @@ export default function GalaxyDefense() {
             </div>
 
             <div className="game-description">
-              Left: random weapon. Right: additional bullets.
+              Left: random equipment. Right: additional bullets.
             </div>
 
             <div className="game-best-score">
@@ -944,7 +944,7 @@ export default function GalaxyDefense() {
 
               <span>LIFE: {lives}</span>
 
-              <span>WEAPON: {getWeaponName(weapon)}</span>
+              <span>EQUIPMENT: {getEquipmentName(equipment)}</span>
 
               <span>
                 BULLETS: {bulletRows}/{MAX_BULLET_ROWS}
@@ -963,7 +963,7 @@ export default function GalaxyDefense() {
           <div className="game-instructions">
             <span>MOVE THROUGH ALL THREE ZONES</span>
 
-            <span>LEFT = WEAPON &nbsp;&nbsp;|&nbsp;&nbsp; RIGHT = BULLETS</span>
+            <span>LEFT = EQUIPMENT &nbsp;&nbsp;|&nbsp;&nbsp; RIGHT = BULLETS</span>
           </div>
 
           <div className="barrier-status">
