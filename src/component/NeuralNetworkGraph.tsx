@@ -118,7 +118,10 @@ function createGridLayout(nodes: GraphNode[], width: number, height: number) {
     largestRadius,
     ...nodes.map(getNodeHalfWidth),
   );
-  const columns = Math.max(1, Math.floor(width / (largestHalfWidth * 2 + NODE_GAP)));
+  const columns = Math.max(
+    1,
+    Math.floor(width / (largestHalfWidth * 2 + NODE_GAP)),
+  );
   const rows = Math.max(1, Math.ceil(nodes.length / columns));
   const cellWidth = width / columns;
   const cellHeight = height / rows;
@@ -536,7 +539,8 @@ export default function NeuralNetworkGraph({
 
           <g>
             {nodes.map((node) => {
-              if (connectedNodeIds && !connectedNodeIds.has(node.id)) return null;
+              if (connectedNodeIds && !connectedNodeIds.has(node.id))
+                return null;
 
               const radius = NODE_RADIUS[node.category];
 
@@ -565,7 +569,9 @@ export default function NeuralNetworkGraph({
                     r={radius + glowRadius}
                     fill="none"
                     stroke={style.stroke}
-                    strokeWidth={isHoveredNode ? (isHighlightedProject ? 3 : 2) : 1}
+                    strokeWidth={
+                      isHoveredNode ? (isHighlightedProject ? 3 : 2) : 1
+                    }
                     opacity={isHoveredNode ? 0.9 : 0.15}
                     filter={isHoveredNode ? "url(#neural-glow)" : undefined}
                   >

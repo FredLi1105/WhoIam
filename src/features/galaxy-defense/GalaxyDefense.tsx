@@ -82,7 +82,6 @@ const ENEMY_SPEED_REDUCTION = 0.82;
 
 const MAX_BULLET_ROWS = 3;
 
-
 function randomBetween(min: number, max: number) {
   return min + Math.random() * (max - min);
 }
